@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NMR Spectra Simulator</title>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <script>
+        // If Plotly fails to load from CDN, show a visible banner with troubleshooting tips.
+        (function(){
+            function showPlotlyMissingBanner(){
+                var banner = document.createElement('div');
+                banner.id = 'plotly-missing-banner';
+                banner.style.background = '#fff3cd';
+                banner.style.color = '#856404';
+                banner.style.padding = '10px';
+                banner.style.textAlign = 'center';
+                banner.style.borderBottom = '1px solid #ffeeba';
+                banner.innerText = 'Interactive plotting disabled: Plotly failed to load. Check your browser console or allow loading from cdn.plot.ly to enable zoom/pan.';
+                document.addEventListener('DOMContentLoaded', function(){
+                    document.body.insertBefore(banner, document.body.firstChild);
+                });
+            }
+            // Delay check slightly to allow CDN script to load
+            setTimeout(function(){ if(typeof Plotly === 'undefined'){ showPlotlyMissingBanner(); } }, 1500);
+        })();
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #2196F3, #21CBF3);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            padding: 30px;
+            min-height: 600px;
+        }
+
+        .controls-panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            border: 1px solid #e9ecef;
+        }
+
+        .control-group {
+            margin-bottom: 25px;
+        }
+
+        .control-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .control-group input,
+        .control-group select,
+        .control-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .control-group input:focus,
+        .control-group select:focus,
+        .control-group textarea:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+
+        .control-group textarea {
+            min-height: 120px;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+        }
+
+        .slider-group {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .slider-group input[type="range"] {
+            width: 100%;
+        }
+
+        .slider-value {
+            background: #2196F3;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .button {
+            background: linear-gradient(45deg, #2196F3, #21CBF3);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(33, 150, 243, 0.4);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .export-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .export-btn {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .export-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(76, 175, 80, 0.3);
+        }
+
+        .export-btn:active {
+            transform: translateY(0);
+        }
+
+        .spectrum-panel {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #e9ecef;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .spectrum-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            background: #fafafa;
+            border-radius: 8px;
+            border: 2px dashed #ddd;
+        }
+
+        .spectrum-container img {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .placeholder {
+            text-align: center;
+            color: #666;
+            font-size: 18px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #2196F3;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .loading:before {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #2196F3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border: 1px solid #f5c6cb;
+            display: none;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border: 1px solid #c3e6cb;
+            display: none;
+        }
+
+        .export-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .export-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .export-btn:hover {
+            background: #218838;
+        }
+
+        .zoom-controls {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+
+        .zoom-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            margin: 0 2px;
+            border-radius: 3px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .zoom-btn:hover {
+            background: #0056b3;
+        }
+
+        /* Peak Editor Styles */
+        #peak-editor-modal table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        
+        #peak-editor-modal th, #peak-editor-modal td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        #peak-editor-modal th {
+            background-color: #f2f2f2;
+        }
+        
+        #peak-editor-modal input {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .spectrum-container {
+            position: relative;
+            overflow: auto;
+        }
+
+        .spectrum-container img {
+            max-width: none;
+            cursor: crosshair;
+            transition: transform 0.3s ease;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .spectrum-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            display: none;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 NMR Spectra Simulator</h1>
+            <p>Professional NMR spectrum simulation with real data input</p>
+        </div>
+
+        <div class="main-content">
+            <div class="controls-panel">
+                <h2 style="margin-bottom: 20px; color: #333;">Simulation Parameters</h2>
+                
+                <div class="control-group">
+                    <label for="nucleus">Nucleus Type</label>
+                    <select id="nucleus">
+                        <option value="1H">¹H NMR</option>
+                        <option value="13C">¹³C NMR</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="field_strength">Field Strength (MHz)</label>
+                    <select id="field_strength">
+                        <option value="200">200 MHz</option>
+                        <option value="300">300 MHz</option>
+                        <option value="400" selected>400 MHz</option>
+                        <option value="500">500 MHz</option>
+                        <option value="600">600 MHz</option>
+                        <option value="800">800 MHz</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="resolution">Resolution (Data Points)</label>
+                    <select id="resolution">
+                        <option value="2048">2048</option>
+                        <option value="4096">4096</option>
+                        <option value="8192" selected>8192</option>
+                        <option value="16384">16384</option>
+                        <option value="32768">32768</option>
+                        <option value="65536">65536</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="noise_level">Noise Level (%)</label>
+                    <div class="slider-group">
+                        <input type="range" id="noise_level" min="0" max="10" value="0" step="0.1">
+                        <span class="slider-value" id="noise_value">0.0%</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label for="default_linewidth">Default Linewidth (Hz)</label>
+                    <div class="slider-group">
+                        <input type="range" id="default_linewidth" min="0.5" max="10" value="2.0" step="0.1">
+                        <span class="slider-value" id="linewidth_value">2.0 Hz</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>
+                        <input type="checkbox" id="enable_multiplet_grouping" checked>
+                        Enable Visual Multiplet Grouping
+                    </label>
+                    <small style="display: block; color: #666; margin-top: 5px;">
+                        Groups nearby peaks into multiplets (A, B, C...) with combined integrations and center shifts
+                    </small>
+                </div>
+
+                <div class="control-group">
+                    <label for="grouping_tolerance">Grouping Tolerance (ppm)</label>
+                    <div class="slider-group">
+                        <input type="range" id="grouping_tolerance" min="0.05" max="1.0" value="0.3" step="0.05">
+                        <span class="slider-value" id="grouping_tolerance_value">0.30 ppm</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Per-Peak Linewidth Adjustments</label>
+                    <small style="display: block; color: #666; margin-bottom: 10px;">
+                        Add linewidth modifiers to peak data: "Hz ppm Int width_Hz" or use special keywords
+                    </small>
+                    <div style="background: #f8f9fa; padding: 10px; border-radius: 5px; font-size: 12px;">
+                        <strong>Examples:</strong><br>
+                        • <code>3489.20 8.728 54 1.5</code> - Specific 1.5 Hz linewidth<br>
+                        • <code>8.5 (br s, 1H)</code> - "br" keyword = broad (15 Hz)<br>
+                        • <code>4.5 (s, 1H, NH)</code> - "NH" keyword = very broad (25 Hz)<br>
+                        • <code>7.25 (m, 5H)</code> - Uses default linewidth
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label for="nmr_data">NMR Peak Data</label>
+                    <div style="margin-bottom: 10px;">
+                        <button type="button" onclick="loadSampleData('SDBS')" style="margin-right: 5px; padding: 5px 10px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer;">Load SDBS Sample</button>
+                        <button type="button" onclick="loadSampleData('1H')" style="margin-right: 5px; padding: 5px 10px; background: #17a2b8; color: white; border: none; border-radius: 3px; cursor: pointer;">Load ¹H Sample</button>
+                        <button type="button" onclick="loadSampleData('13C')" style="margin-right: 5px; padding: 5px 10px; background: #6f42c1; color: white; border: none; border-radius: 3px; cursor: pointer;">Load ¹³C Sample</button>
+                    </div>
+                    <textarea id="nmr_data" placeholder="Enter peak data in various supported formats:
+
+SDBS Format Examples:
+• 3489.20 8.728 54 (Hz ppm intensity)
+• 3106.02 7.770 484
+
+Literature Format:
+• 7.26 (s, 5H) 
+• 3.65 (q, J=7.1 Hz, 2H)
+• 1.25 (t, J=7.1 Hz, 3H)
+
+Simple Format:
+• 7.26 s 0 1 (shift mult coupling integration)
+
+Assignment Format:
+• A 7.6 (assignment shift)
+• B 3.2 (assignment shift)
+
+Mixed formats are supported. Paste data from SDBS, literature, or manual input."></textarea>
+                    <div class="help-text">
+                        ✅ Supports SDBS data format (Hz ppm intensity)<br>
+                        ✅ Literature format with parentheses<br>
+                        ✅ Assignment format (A 7.6)<br>
+                        ✅ Simple tabulated format<br>
+                        Multiplicity: s (singlet), d (doublet), t (triplet), q (quartet), m (multiplet)
+                    </div>
+                </div>
+
+                <button class="button" onclick="simulateSpectrum()">
+                    🔬 Generate Spectrum
+                </button>
+
+                <div style="margin-top: 15px;">
+                    <button type="button" class="export-btn" onclick="loadSampleData('1H')">Load 1H Sample</button>
+                    <button type="button" class="export-btn" onclick="loadSampleData('13C')">Load 13C Sample</button>
+                    <button type="button" class="export-btn" onclick="loadSampleData('SDBS')">Load SDBS Format</button>
+                </div>
+
+                <div class="error" id="error-message"></div>
+                <div class="success" id="success-message"></div>
+                <div class="loading" id="loading">Generating spectrum...</div>
+            </div>
+
+            <div class="spectrum-panel">
+                <div class="spectrum-info" id="spectrum-info">
+                    <strong>Spectrum Information:</strong>
+                    <div id="spectrum-details"></div>
+                </div>
+
+                <div class="spectrum-container" id="spectrum-container">
+                    <div class="placeholder">
+                        <div style="font-size: 48px; margin-bottom: 20px;">📊</div>
+                        <div>Enter NMR data and click "Generate Spectrum" to see your interactive simulation</div>
+                        <div style="margin-top: 15px; font-size: 14px; color: #999;">
+                            Interactive zoom and pan • Click and drag to zoom • Double-click to reset
+                        </div>
+                    </div>
+                </div>
+                    <div class="placeholder">
+                        <div style="font-size: 48px; margin-bottom: 20px;">📊</div>
+                        <div>Enter NMR data and click "Generate Spectrum" to see your simulation</div>
+                        <div style="margin-top: 15px; font-size: 14px; color: #999;">
+                            Supports both ¹H and ¹³C NMR with realistic noise and high resolution
+                        </div>
+                    </div>
+                </div>
+
+                <div class="export-buttons" id="export-buttons" style="display: none;">
+                    <button class="export-btn" onclick="exportSpectrum('jcamp')">📊 JCAMP-DX</button>
+                    <button class="export-btn" onclick="exportSpectrum('bruker')">🔬 Bruker</button>
+                    <button class="export-btn" onclick="exportSpectrum('csv')">📄 CSV</button>
+                    <button class="export-btn" onclick="exportSpectrum('png')">🖼️ PNG</button>
+                    <button class="export-btn" onclick="showPeakEditor()">✏️ Edit Peaks</button>
+                </div>
+
+                <!-- Peak Editor Modal -->
+                <div id="peak-editor-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px; max-width: 800px; max-height: 600px; overflow-y: auto;">
+                        <h3>Peak Editor</h3>
+                        <div id="peak-list"></div>
+                        <div style="margin-top: 20px;">
+                            <button onclick="closePeakEditor()" style="margin-right: 10px;">Close</button>
+                            <button onclick="applyPeakChanges()" style="margin-right: 10px;">Apply Changes</button>
+                            <button onclick="regenerateSpectrum()">Regenerate Spectrum</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        console.log('NMR Spectra Simulator JavaScript loaded successfully');
+        console.log('Plotly available:', typeof Plotly !== 'undefined');
+        
+        // Update slider displays
+        document.getElementById('noise_level').addEventListener('input', function() {
+            document.getElementById('noise_value').textContent = parseFloat(this.value).toFixed(1) + '%';
+        });
+
+        document.getElementById('default_linewidth').addEventListener('input', function() {
+            document.getElementById('linewidth_value').textContent = parseFloat(this.value).toFixed(1) + ' Hz';
+        });
+
+        document.getElementById('grouping_tolerance').addEventListener('input', function() {
+            document.getElementById('grouping_tolerance_value').textContent = parseFloat(this.value).toFixed(2) + ' ppm';
+        });
+
+        function showMessage(type, message) {
+            const errorEl = document.getElementById('error-message');
+            const successEl = document.getElementById('success-message');
+            
+            errorEl.style.display = 'none';
+            successEl.style.display = 'none';
+            
+            if (type === 'error') {
+                errorEl.textContent = message;
+                errorEl.style.display = 'block';
+            } else {
+                successEl.textContent = message;
+                successEl.style.display = 'block';
+            }
+        }
+
+        function simulateSpectrum() {
+            console.log('simulateSpectrum called');
+            const button = document.querySelector('.button');
+            const loading = document.getElementById('loading');
+            const container = document.getElementById('spectrum-container');
+            const info = document.getElementById('spectrum-info');
+            const exportButtons = document.getElementById('export-buttons');
+            
+            // Get form data
+            const data = {
+                nmr_data: document.getElementById('nmr_data').value,
+                nucleus: document.getElementById('nucleus').value,
+                field_strength: document.getElementById('field_strength').value,
+                noise_level: document.getElementById('noise_level').value,
+                resolution: document.getElementById('resolution').value,
+                default_linewidth: document.getElementById('default_linewidth').value,
+                enable_multiplet_grouping: document.getElementById('enable_multiplet_grouping').checked,
+                grouping_tolerance: document.getElementById('grouping_tolerance').value
+            };
+
+            // Validate input
+            if (!data.nmr_data.trim()) {
+                showMessage('error', 'Please enter NMR peak data');
+                return;
+            }
+
+            // Show loading state
+            button.disabled = true;
+            loading.style.display = 'block';
+            container.innerHTML = '<div class="loading">Generating spectrum...</div>';
+            info.style.display = 'none';
+            exportButtons.style.display = 'none';
+
+            // Send request
+            console.log('Sending simulation request with data:', data);
+            fetch('/simulate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                console.log('Received response:', response);
+                return response.json();
+            })
+            .then(result => {
+                console.log('Parsed result:', result);
+                button.disabled = false;
+                loading.style.display = 'none';
+
+                if (result.error) {
+                    showMessage('error', result.error);
+                    container.innerHTML = `
+                        <div class="placeholder">
+                            <div style="font-size: 48px; margin-bottom: 20px;">❌</div>
+                            <div>Error generating spectrum</div>
+                            <div style="margin-top: 10px; font-size: 14px; color: #999;">
+                                ${result.error}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    showMessage('success', `Successfully generated ${result.nucleus} NMR spectrum with ${result.peaks_count} peaks`);
+                    
+                    // Display spectrum - try interactive Plotly first, fall back to static image
+                    if (result.plot_data && typeof Plotly !== 'undefined') {
+                        container.innerHTML = '<div id="plotly-div" style="width:100%;height:500px;"></div>';
+                        
+                        // Create interactive Plotly plot
+                        Plotly.newPlot('plotly-div', result.plot_data.data, result.plot_data.layout, {
+                            responsive: true,
+                            displayModeBar: true,
+                            modeBarButtonsToRemove: ['toggleHover', 'toggleSpikelines', 'pan2d', 'lasso2d'],
+                            displaylogo: false,
+                            scrollZoom: true,
+                            doubleClick: 'reset+autosize'
+                        });
+                    } else if (result.static_url) {
+                        // Use static image
+                        container.innerHTML = `<img src="data:image/png;base64,${result.static_url}" alt="NMR Spectrum" style="width:100%;max-width:1200px;">`;
+                    } else {
+                        // Error case
+                        container.innerHTML = `
+                            <div class="placeholder">
+                                <div style="font-size: 48px; margin-bottom: 20px;">⚠️</div>
+                                <div>Plot generation issue</div>
+                                <div style="margin-top: 10px; font-size: 14px; color: #999;">
+                                    Neither interactive nor static plot was generated
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    // Show spectrum info with multiplet details
+                    let spectrumDetails = `
+                        <div><strong>Nucleus:</strong> ${result.nucleus}</div>
+                        <div><strong>Field Strength:</strong> ${result.field_strength} MHz</div>
+                        <div><strong>Peaks:</strong> ${result.peaks_count}</div>
+                        <div><strong>Resolution:</strong> ${data.resolution} points</div>
+                        <div><strong>Noise Level:</strong> ${parseFloat(data.noise_level).toFixed(1)}%</div>
+                        <div><strong>Default Linewidth:</strong> ${parseFloat(data.default_linewidth).toFixed(1)} Hz</div>
+                    `;
+                    
+                    if (data.enable_multiplet_grouping && result.multiplet_groups) {
+                        spectrumDetails += `<div><strong>Multiplet Groups:</strong> ${result.multiplet_groups} visual groups created</div>`;
+                        spectrumDetails += `<div style="font-size: 12px; color: #666; margin-top: 5px;">Groups combine nearby peaks for easier analysis and integration</div>`;
+                    }
+                    
+                    document.getElementById('spectrum-details').innerHTML = spectrumDetails;
+                    info.style.display = 'block';
+                    exportButtons.style.display = 'grid';
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                button.disabled = false;
+                loading.style.display = 'none';
+                showMessage('error', 'Network error: ' + error.message);
+                container.innerHTML = `
+                    <div class="placeholder">
+                        <div style="font-size: 48px; margin-bottom: 20px;">🔌</div>
+                        <div>Connection Error</div>
+                        <div style="margin-top: 10px; font-size: 14px; color: #999;">
+                            Please check your internet connection
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function exportSpectrum(format) {
+            // Create a temporary link to trigger download
+            const link = document.createElement('a');
+            link.href = `/export/${format}`;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showMessage('success', `Downloading ${format.toUpperCase()} file...`);
+        }
+
+        function showPeakEditor() {
+            // Get current peaks
+            fetch('/get_peaks')
+            .then(response => response.json())
+            .then(result => {
+                if (result.error) {
+                    showMessage('error', result.error);
+                    return;
+                }
+                
+                // Store original peaks for change tracking
+                window.originalPeaks = JSON.parse(JSON.stringify(result.peaks));
+                window.pendingChanges = {};
+                
+                // Group peaks by visual assignment
+                const peakGroups = {};
+                result.peaks.forEach(peak => {
+                    const groupKey = peak.visual_assignment || peak.chemical_shift.toFixed(2);
+                    if (!peakGroups[groupKey]) {
+                        peakGroups[groupKey] = [];
+                    }
+                    peakGroups[groupKey].push(peak);
+                });
+                
+                // Build peak editor HTML
+                let html = '<table style="width: 100%; border-collapse: collapse;">';
+                html += '<tr><th style="border: 1px solid #ddd; padding: 8px;">Assignment</th>';
+                html += '<th style="border: 1px solid #ddd; padding: 8px;">Shift (ppm)</th>';
+                html += '<th style="border: 1px solid #ddd; padding: 8px;">Intensity</th>';
+                html += '<th style="border: 1px solid #ddd; padding: 8px;">Width (Hz)</th>';
+                html += '<th style="border: 1px solid #ddd; padding: 8px;">Multiplicity</th>';
+                html += '<th style="border: 1px solid #ddd; padding: 8px;">Integration</th></tr>';
+                
+                Object.keys(peakGroups).forEach(groupKey => {
+                    const groupPeaks = peakGroups[groupKey];
+                    const isGroup = groupPeaks.length > 1;
+                    
+                    if (isGroup) {
+                        // Show group header
+                        const totalIntegration = groupPeaks.reduce((sum, p) => sum + p.integration, 0);
+                        const avgShift = groupPeaks.reduce((sum, p) => sum + p.chemical_shift, 0) / groupPeaks.length;
+                        const avgIntensity = groupPeaks.reduce((sum, p) => sum + p.intensity, 0) / groupPeaks.length;
+                        const avgWidth = groupPeaks.reduce((sum, p) => sum + p.width, 0) / groupPeaks.length;
+                        
+                        html += `<tr style="background-color: #f0f0f0;">`;
+                        html += `<td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;" rowspan="${groupPeaks.length + 1}">${groupKey}</td>`;
+                        html += `<td style="border: 1px solid #ddd; padding: 8px;" colspan="4"><strong>Group (${groupPeaks.length} peaks)</strong></td>`;
+                        html += `<td style="border: 1px solid #ddd; padding: 8px;"><input type="number" step="0.1" value="${totalIntegration.toFixed(1)}" data-group-key="${groupKey}" data-field="group_integration" onchange="trackGroupChange('${groupKey}', 'integration', this.value)" title="Total integration for group"></td>`;
+                        html += `</tr>`;
+                        
+                        // Show individual peaks in group
+                        groupPeaks.forEach(peak => {
+                            html += `<tr>`;
+                            html += `<td style="border: 1px solid #ddd; padding: 8px;"><input type="number" step="0.01" value="${peak.chemical_shift.toFixed(2)}" data-peak-id="${peak.id}" data-field="chemical_shift" onchange="trackPeakChange(${peak.id}, 'chemical_shift', this.value)"></td>`;
+                            html += `<td style="border: 1px solid #ddd; padding: 8px;"><input type="number" step="0.1" value="${peak.intensity.toFixed(1)}" data-peak-id="${peak.id}" data-field="intensity" onchange="trackPeakChange(${peak.id}, 'intensity', this.value)"></td>`;
+                            html += `<td style="border: 1px solid #ddd; padding: 8px;"><input type="number" step="0.1" value="${(peak.width * 400).toFixed(1)}" data-peak-id="${peak.id}" data-field="width" onchange="trackPeakChange(${peak.id}, 'width', this.value / 400)" title="Width in Hz (converted from ppm)"></td>`;
+                            html += `<td style="border: 1px solid #ddd; padding: 8px;"><input type="text" value="${peak.multiplicity}" data-peak-id="${peak.id}" data-field="multiplicity" onchange="trackPeakChange(${peak.id}, 'multiplicity', this.value)"></td>`;
+                            html += `<td style="border: 1px solid #ddd; padding: 8px;">${peak.integration.toFixed(1)}</td>`;
+                            html += `</tr>`;
+                        });
+                    } else {
+                        // Single peak
+                        const peak = groupPeaks[0];
+                        html += `<tr>`;
+                        html += `<td style="border: 1px solid #ddd; padding: 8px;">${groupKey}</td>`;
+                        html += `<td style="border: 1px solid #ddd; padding: 8px;"><input type="number" step="0.01" value="${peak.chemical_shift.toFixed(2)}" data-peak-id="${peak.id}" data-field="chemical_shift" onchange="trackPeakChange(${peak.id}, 'chemical_shift', this.value)"></td>`;
+                        html += `<td style="border: 1px solid #ddd; padding: 8px;"><input type="number" step="0.1" value="${peak.intensity.toFixed(1)}" data-peak-id="${peak.id}" data-field="intensity" onchange="trackPeakChange(${peak.id}, 'intensity', this.value)"></td>`;
+                        html += `<td style="border: 1px solid #ddd; padding: 8px;"><input type="number" step="0.1" value="${(peak.width * 400).toFixed(1)}" data-peak-id="${peak.id}" data-field="width" onchange="trackPeakChange(${peak.id}, 'width', this.value / 400)" title="Width in Hz (converted from ppm)"></td>`;
+                        html += `<td style="border: 1px solid #ddd; padding: 8px;"><input type="text" value="${peak.multiplicity}" data-peak-id="${peak.id}" data-field="multiplicity" onchange="trackPeakChange(${peak.id}, 'multiplicity', this.value)"></td>`;
+                        html += `<td style="border: 1px solid #ddd; padding: 8px;"><input type="number" step="0.1" value="${peak.integration.toFixed(1)}" data-peak-id="${peak.id}" data-field="integration" onchange="trackPeakChange(${peak.id}, 'integration', this.value)"></td>`;
+                        html += `</tr>`;
+                    }
+                });
+                
+                html += '</table>';
+                document.getElementById('peak-list').innerHTML = html;
+                document.getElementById('peak-editor-modal').style.display = 'block';
+            })
+            .catch(error => {
+                showMessage('error', 'Failed to load peaks: ' + error.message);
+            });
+        }
+
+        function closePeakEditor() {
+            document.getElementById('peak-editor-modal').style.display = 'none';
+        }
+
+        function trackPeakChange(peakId, field, value) {
+            if (!window.pendingChanges[peakId]) {
+                window.pendingChanges[peakId] = {};
+            }
+            window.pendingChanges[peakId][field] = parseFloat(value) || value;
+        }
+
+        function trackGroupChange(groupKey, field, value) {
+            if (!window.pendingGroupChanges) {
+                window.pendingGroupChanges = {};
+            }
+            window.pendingGroupChanges[groupKey] = { field: field, value: parseFloat(value) || value };
+        }
+
+        function applyPeakChanges() {
+            if (Object.keys(window.pendingChanges).length === 0 && (!window.pendingGroupChanges || Object.keys(window.pendingGroupChanges).length === 0)) {
+                showMessage('info', 'No changes to apply');
+                return;
+            }
+            
+            // Handle group changes first - distribute integration proportionally
+            if (window.pendingGroupChanges) {
+                for (const groupKey in window.pendingGroupChanges) {
+                    const change = window.pendingGroupChanges[groupKey];
+                    if (change.field === 'integration') {
+                        // Find peaks in this group
+                        const groupPeaks = window.originalPeaks.filter(p => 
+                            (p.visual_assignment || p.chemical_shift.toFixed(2)) === groupKey
+                        );
+                        
+                        if (groupPeaks.length > 1) {
+                            const currentTotal = groupPeaks.reduce((sum, p) => sum + p.integration, 0);
+                            const newTotal = change.value;
+                            const ratio = newTotal / currentTotal;
+                            
+                            // Apply proportional changes to each peak
+                            groupPeaks.forEach(peak => {
+                                const newIntegration = peak.integration * ratio;
+                                if (!window.pendingChanges[peak.id]) {
+                                    window.pendingChanges[peak.id] = {};
+                                }
+                                window.pendingChanges[peak.id].integration = newIntegration;
+                            });
+                        }
+                    }
+                }
+            }
+            
+            // Send all pending changes
+            fetch('/update_peaks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ changes: window.pendingChanges })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.error) {
+                    showMessage('error', result.error);
+                } else if (result.plot_data || result.static_url) {
+                    // Update the spectrum display with the new plot data
+                    console.log('Peaks updated, updating spectrum display...');
+                    updateSpectrumDisplay(result);
+                    // Clear pending changes
+                    window.pendingChanges = {};
+                    window.pendingGroupChanges = {};
+                    showMessage('success', 'Peak changes applied successfully');
+                }
+            })
+            .catch(error => {
+                showMessage('error', 'Failed to apply peak changes: ' + error.message);
+            });
+        }
+
+        // Old function - replaced with batch update
+        /*
+        function updatePeak(peakId, field, value) {
+            console.log(`updatePeak called: peakId=${peakId}, field=${field}, value=${value}`);
+            fetch('/update_peak', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: peakId, updates: { [field]: parseFloat(value) || value } })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.error) {
+                    showMessage('error', result.error);
+                } else if (result.plot_data || result.static_url) {
+                    // Update the spectrum display with the new plot data
+                    console.log('Peak updated, updating spectrum display...');
+                    updateSpectrumDisplay(result);
+                }
+            })
+            .catch(error => {
+                showMessage('error', 'Failed to update peak: ' + error.message);
+            });
+        }
+        */
+
+        function updateSpectrumDisplay(result) {
+            console.log('updateSpectrumDisplay called');
+            const container = document.getElementById('spectrum-container');
+            
+            // Display spectrum - try interactive Plotly first, fall back to static image
+            if (result.plot_data && typeof Plotly !== 'undefined') {
+                container.innerHTML = '<div id="plotly-div" style="width:100%;height:500px;"></div>';
+                
+                // Create interactive Plotly plot
+                Plotly.newPlot('plotly-div', result.plot_data.data, result.plot_data.layout, {
+                    displayModeBar: true,
+                    modeBarButtonsToRemove: ['toggleHover', 'toggleSpikelines'],
+                    displaylogo: false,
+                    scrollZoom: true,
+                    doubleClick: 'reset+autosize'
+                });
+            } else if (result.static_url) {
+                // Use static image
+                container.innerHTML = `<img src="data:image/png;base64,${result.static_url}" alt="NMR Spectrum" style="width:100%;max-width:1200px;">`;
+            }
+        }
+
+        function regenerateSpectrum() {
+            // Re-run the simulation with current parameters
+            simulateSpectrum();
+            closePeakEditor();
+        }
+
+        // Add sample data on page load
+        window.addEventListener('load', function() {
+            // Sample data examples
+            window.sampleData = {
+                '1H': `7.26 (s, 5H)
+3.65 (q, J=7.1 Hz, 2H)  
+1.25 (t, J=7.1 Hz, 3H)
+2.45 (m, 2H)`,
+                '13C': `136.25 (C, aromatic)
+128.50 (CH, aromatic)
+127.80 (CH, aromatic)
+65.30 (CH2, aliphatic)
+14.20 (CH3, aliphatic)`,
+                'SDBS': `3489.20 8.728 54
+3106.02 7.770 484
+3105.23 7.768 843
+2969.18 7.427 740
+2651.43 6.633 401`
+            };
+        });
+
+        function loadSampleData(type) {
+            const textarea = document.getElementById('nmr_data');
+            if (window.sampleData && window.sampleData[type]) {
+                textarea.value = window.sampleData[type];
+                
+                // Update nucleus selection if appropriate
+                const nucleusSelect = document.getElementById('nucleus');
+                if (type === '13C') {
+                    nucleusSelect.value = '13C';
+                } else if (type === '1H' || type === 'SDBS') {
+                    nucleusSelect.value = '1H';
+                }
+                
+                showMessage('success', `Loaded ${type} sample data. Click "Generate Spectrum" to simulate.`);
+            }
+        }
+    </script>
+</body>
+</html>

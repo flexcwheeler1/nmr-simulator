@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+web_app.log*
+
+# Environment variables
+.env
+.env.local
+
+# Temporary files
+*.tmp
+/tmp/
+C:/tmp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Application specific
+nmr_last_spectrum.json
+converted_trajectories/
+md_analysis_results/
+*.png
+*.jdx
+*.zip
+
+# Test files
+test_*.py
+check_*.py
+debug_*.txt
