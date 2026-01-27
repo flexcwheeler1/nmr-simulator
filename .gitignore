@@ -27,6 +27,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# External repositories
+NMRBank/
+
 # IDE
 .vscode/
 .idea/
