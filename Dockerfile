@@ -22,16 +22,16 @@ COPY . .
 RUN mkdir -p /tmp && chmod 777 /tmp
 
 # Expose port
-EXPOSE 8080
+EXPOSE 5000
 
 # Set environment variables
 ENV FLASK_ENV=production
-ENV PORT=8080
+ENV PORT=5000
 ENV PYTHONUNBUFFERED=1
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/ || exit 1
+    CMD curl -f http://localhost:5000/ || exit 1
 
 # Run with gunicorn
 CMD exec gunicorn --config gunicorn.conf.py web_app:app

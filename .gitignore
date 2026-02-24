@@ -62,7 +62,12 @@ md_analysis_results/
 *.jdx
 *.zip
 
-# Test files
+# test files
 test_*.py
 check_*.py
 debug_*.txt
+
+# Large data files (exclude CSV and large generated files)
+*.csv
+*.tsv
+NMRBank_data*
