@@ -1,3 +1,15 @@
+## DISABLED: Original deploy workflow to Google Cloud Run
+# This file was renamed to disable automatic Google Cloud deployment
+# Reason: user requested removal/disable of Google publishing steps.
+# To re-enable, rename back to `deploy.yml`.
+
+name: Deploy to Google Cloud Run (DISABLED)
+
+# Workflow disabled — kept for reference
+
+# Original contents (kept below for reference):
+
+```github-actions-workflow
 name: Deploy to Google Cloud Run
 
 on:
@@ -55,3 +67,5 @@ jobs:
       run: |
         sleep 10
         curl -f ${{ env.SERVICE_URL }} || exit 1
+
+```
