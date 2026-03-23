@@ -21,7 +21,7 @@ A web-based tool for simulating and analyzing NMR (Nuclear Magnetic Resonance) s
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/nmr-spectra-simulator.git
+git clone https://github.com/flexcwheeler1/nmr-spectra-simulator.git
 cd nmr-spectra-simulator
 
 # Create virtual environment
